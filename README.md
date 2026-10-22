@@ -60,14 +60,26 @@ The project is intentionally small and native:
 - Guards against copying a folder into itself; junctions/symlinks are not expanded.
 - **Long paths**: absolute paths are sent to Win32 as `\\?\` / `\\?\UNC\`; the UI still shows normal paths.
 
-### Languages and persistence
+### Languages and Russian availability
 
-- Russian and English UI.
-- Default is the **Windows system language**; Russian/English can be forced in settings.
+- **English** and **Russian** interfaces are both complete: menus, settings, dialogs, search statuses, file-operation messages, trash and error dialogs.
+- The default is the **Windows system language**; Russian/English can be forced in **Settings → Language**.
+- The choice is saved in the session and applied without restarting.
+- The screenshots and GIF show the English UI; the Russian UI is identical in layout and fully available.
+- Russian documentation: [README.ru.md](README.ru.md).
+
+### Persistence
+
 - Settings are auto-saved 0.4 s after a change, when the settings window closes, and by the **Save settings** button.
 - Session file: `%LOCALAPPDATA%\Korobka\session.json`, written atomically via a temporary file.
 
 ## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/demo.gif" alt="Korobka Explorer demo: search, glass theme, trash restore" width="820">
+  <br>
+  <em>Demo: instant search, glass theme, trash restore.</em>
+</p>
 
 | Main window | Settings |
 |---|---|
@@ -76,6 +88,8 @@ The project is intentionally small and native:
 | Trash |
 |---|
 | ![Trash](docs/screenshots/en/trash.png) |
+
+> **Russian is fully available.** The screenshots and demo use the English UI. The app ships with a complete Russian translation — switch it in **Settings → Language** (`System` / `Russian` / `English`). The Russian README is [README.ru.md](README.ru.md).
 
 ## Requirements
 
