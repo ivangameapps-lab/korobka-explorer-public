@@ -1,210 +1,283 @@
 # Korobka Explorer
 
-**Файловый менеджер для Windows на Rust + egui.** Собственный интерфейс, быстрый поиск по индексу, двухрежимное оформление, корзина с восстановлением и поддержка длинных путей.
+**A native Windows file manager written in Rust + egui.** Custom UI, fast indexed search, matte/glass themes, a restoreable trash, and long-path support.
+
+[![Release](https://img.shields.io/github/v/release/ivangameapps-lab/korobka-explorer-public?style=flat-square)](https://github.com/ivangameapps-lab/korobka-explorer-public/releases/latest)
+[![License](https://img.shields.io/github/license/ivangameapps-lab/korobka-explorer-public?style=flat-square)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-0078D4?style=flat-square)](#requirements)
+[![Rust](https://img.shields.io/badge/Rust-2021-orange?style=flat-square&logo=rust)](https://www.rust-lang.org/)
+
+[Русская версия](README.ru.md)
 
 <p align="center">
-  <img src="docs/screenshots/main.png" alt="Korobka Explorer — главное окно" width="900">
+  <img src="docs/screenshots/en/main.png" alt="Korobka Explorer main window" width="900">
 </p>
 
-## Возможности
+## Overview
 
-### Интерфейс
+Korobka Explorer is not a skin over Windows Explorer. It is a standalone desktop application built with **Rust**, **eframe/egui 0.31** and **egui_extras**. It talks to Win32 directly for file enumeration, long paths, drives and process locks.
 
-- Два оформления: **«Матовый»** — плотный синий градиент, и **«Стекло»** — прозрачные панели поверх акрила Windows.
-- Настраиваемый акцентный цвет, ползунок прозрачности, отключаемое размытие фона, анимации и плавный масштаб 80–135%.
-- Собственная шапка с перетаскиванием, сворачиванием, разворачиванием и закрытием.
-- Вкладки, кликабельные хлебные крошки, ручной ввод пути, быстрый доступ и диски.
-- Виртуализированный список и плитка: рисуются только видимые строки.
-- Панель свойств: тип, размер, дата изменения, путь.
-- Контекстные меню как в Проводнике: открыть, открыть в новой вкладке, копировать, вырезать, вставить, переименовать, свойства, удалить, создать ярлык.
-- Правый клик по пустому месту: **«Создать»** (папка, текстовый документ, Word, Excel, ZIP, пустой файл), вставить, обновить, сортировка.
-- Статусная строка: состояние, количество объектов, выделение и его размер, прогресс операции с отменой.
+The project is intentionally small and native:
 
-### Поиск
+- single `~5 MB` executable, no runtime installer;
+- no Python, Node.js, Electron or WebView;
+- no telemetry, no background service, no network calls;
+- settings and indexes live in `%LOCALAPPDATA%\Korobka`.
 
-- Ввод в поле поиска **мгновенно фильтрует** текущую папку — без обхода диска.
-- `Enter` — поиск по текущей папке и подпапкам, кнопка с лупой — по всему тому.
-- Режимы **«Точное имя»** и **«По части имени»**.
-- Запрос из нескольких слов: все слова должны совпасть. Фразу можно взять в кавычки.
-- Маски `*` и `?`: `*.txt`, `отч?т`.
-- Поиск по полному пути: `users\ivan\doc`.
-- Ранжирование: точное имя → совпадение с начала имени/слова → вхождение; внутри группы короче — выше.
-- Компактный индекс: полный путь папки хранится один раз на блок, элементы — только именами и типом.
-- Кэш индекса: `%LOCALAPPDATA%\Korobka\index`. Отдельно для тома и для папок.
-- Кэш читается потоково; старый формат индекса тоже читается без переобхода.
-- Число потоков поиска настраивается: **2–16**, по умолчанию **8**.
+## Features
 
-### Файловые операции
+### Interface
 
-- Копирование, перемещение, вставка, конфликтные ситуации: заменить, оставить оба, пропустить, применить ко всем.
-- Прогресс и отмена в фоновом потоке.
-- `Del` — в корзину, `Shift+Del` — безвозвратно (с подтверждением).
-- **Корзина** в боковой панели: список удалённых объектов, исходный путь, восстановление, выборочное удаление и полная очистка.
-- `Ctrl+Z` — отмена последнего копирования, перемещения или удаления в корзину.
-- Поиск блокирующих процессов через Restart Manager, мягкое/принудительное закрытие, перезапуск Проводника.
-- Защита от копирования папки внутрь самой себя; junction/symlink не разворачиваются при удалении и копировании.
-- **Длинные пути**: для Win32-вызовов автоматически используется `\\?\` / `\\?\UNC\`; в интерфейсе путь показывается без префикса.
+- **Matte** — dense blue gradient; **Glass** — transparent panels over Windows acrylic.
+- Accent color picker, transparency slider, optional background blur, animations and smooth 80–135% scaling.
+- Custom title bar with drag, minimize, maximize and close.
+- Tabs, clickable breadcrumbs, manual path editing, quick access and drives.
+- Virtualized list and tile views: only visible rows are built.
+- Properties panel: type, size, modified date and path.
+- Explorer-style context menus, including **Create** (folder, text, Word, Excel, ZIP, empty file) and **Create shortcut** (`.lnk`).
+- Status bar with operation progress, cancel, selection size and view mode.
 
-### Язык и настройки
+### Search
 
-- Русский и английский интерфейс.
-- По умолчанию — **системный язык Windows**; можно принудительно выбрать «Русский» или «English».
-- Настройки сохраняются автоматически через 0,4 с после изменения, при закрытии окна и по кнопке «Сохранить настройки».
-- Файл сессии: `%LOCALAPPDATA%\Korobka\session.json`, запись атомарная (через временный файл).
+- Typing filters the current folder **instantly** — no disk walk.
+- `Enter` searches the current folder recursively; the magnifier searches the whole volume.
+- **Exact name** and **part of name** modes.
+- Multi-word queries, quoted phrases, `*`/`?` masks and path queries (`users\ivan\doc`).
+- Ranking: exact name → prefix/word start → substring; shorter names first.
+- Compact on-disk index: the directory path is stored once per block, entries only by name/type.
+- Cache: `%LOCALAPPDATA%\Korobka\index`, per volume and per searched folder.
+- Streaming cache reader; the legacy full-path index format is still accepted.
+- Configurable index/search threads: **2–16**, default **8**.
 
-## Скриншоты
+### File operations
 
-| Главное окно | Настройки |
+- Copy, move, paste, conflict handling (replace / keep both / skip / apply to all).
+- Background progress and cancellation.
+- `Del` moves to trash; `Shift+Del` deletes permanently (confirmation by default).
+- **Trash window** in the sidebar: deleted items, original path, restore, selective delete and empty trash.
+- `Ctrl+Z` undoes the last copy, move or trash operation.
+- Restart Manager integration finds processes holding a file; soft close, force close, Explorer restart.
+- Guards against copying a folder into itself; junctions/symlinks are not expanded.
+- **Long paths**: absolute paths are sent to Win32 as `\\?\` / `\\?\UNC\`; the UI still shows normal paths.
+
+### Languages and persistence
+
+- Russian and English UI.
+- Default is the **Windows system language**; Russian/English can be forced in settings.
+- Settings are auto-saved 0.4 s after a change, when the settings window closes, and by the **Save settings** button.
+- Session file: `%LOCALAPPDATA%\Korobka\session.json`, written atomically via a temporary file.
+
+## Screenshots
+
+| Main window | Settings |
 |---|---|
-| ![Главное окно](docs/screenshots/main.png) | ![Настройки](docs/screenshots/settings.png) |
+| ![Main window](docs/screenshots/en/main.png) | ![Settings](docs/screenshots/en/settings.png) |
 
-| Корзина |
+| Trash |
 |---|
-| ![Корзина](docs/screenshots/trash.png) |
+| ![Trash](docs/screenshots/en/trash.png) |
 
-## Быстрый старт
+## Requirements
 
-### Требования
+> **This is a Rust project, not a Python project.** There is no `pip`, `venv`, `requirements.txt` or Python runtime involved. You need the Rust toolchain and the MSVC C++ build tools.
 
-- Windows 10/11
-- Rust stable (MSVC toolchain)
-- Visual Studio Build Tools с компонентом «Desktop development with C++»
+- Windows 10 or Windows 11, 64-bit
+- Rust stable, MSVC toolchain
+- Visual Studio Build Tools with **Desktop development with C++** and a Windows SDK
+- Internet access for the first `cargo build` (crates.io)
 
-### Сборка и запуск
+### Install the Rust toolchain
+
+```powershell
+winget install --id Rustlang.Rustup -e
+rustup default stable-x86_64-pc-windows-msvc
+rustc --version
+cargo --version
+```
+
+If you already have Rustup, make sure the MSVC toolchain is active:
+
+```powershell
+rustup show
+rustup default stable-x86_64-pc-windows-msvc
+```
+
+### Install MSVC Build Tools
+
+Install **Visual Studio 2022 Build Tools** and select the **Desktop development with C++** workload. The Windows 10/11 SDK is included by that workload.
+
+```powershell
+winget install --id Microsoft.VisualStudio.2022.BuildTools -e --override "--wait --passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
+```
+
+Restart the terminal after installing the toolchain so that `cargo` and `link.exe` are on `PATH`.
+
+## Build and run
 
 ```powershell
 git clone https://github.com/ivangameapps-lab/korobka-explorer-public.git
 cd korobka-explorer-public
-cargo run --release
+cargo build --release
 ```
 
-Готовый файл:
+The binary is:
 
 ```text
 target\release\korobka_explorer.exe
 ```
 
-Готовую сборку также можно скачать в [Releases](https://github.com/ivangameapps-lab/korobka-explorer-public/releases/latest). Файл не подписан, поэтому Windows SmartScreen может показать предупреждение.
+Run it:
 
-Можно открыть папку сразу:
+```powershell
+.\target\release\korobka_explorer.exe
+```
+
+Or open a folder immediately:
 
 ```powershell
 .\target\release\korobka_explorer.exe "D:\Files"
 ```
 
-### Проверка
+For development:
+
+```powershell
+cargo run --release
+cargo run --release -- "D:\Files"
+```
+
+A pre-built, unsigned executable is available in [Releases](https://github.com/ivangameapps-lab/korobka-explorer-public/releases/latest). Windows SmartScreen may warn because the binary is not code-signed.
+
+## Usage
+
+1. Launch the app; it reopens the last tabs from the session.
+2. Type in the search box to filter the current folder instantly.
+3. Press `Enter` to search the folder recursively, or click the magnifier to search the whole volume.
+4. Use the **Actions** menu for operations, view settings and options.
+5. Open **Settings** with `Ctrl+,` to switch language, theme, accent color, index threads and other options.
+6. Click **Trash** in the sidebar to restore or permanently delete items.
+
+## Keyboard shortcuts
+
+| Action | Shortcut |
+|---|---|
+| New tab / close tab | `Ctrl+T` / `Ctrl+W` |
+| Next / previous tab | `Ctrl+Tab` / `Ctrl+Shift+Tab` |
+| Back / forward | `Alt+←` / `Alt+→` |
+| Up | `Backspace` |
+| Address bar | `Ctrl+L` |
+| Search | `Ctrl+F` |
+| Select all visible | `Ctrl+A` |
+| Copy / cut / paste | `Ctrl+C` / `Ctrl+X` / `Ctrl+V` |
+| Move to trash | `Del` |
+| Delete permanently | `Shift+Del` |
+| Rename | `F2` |
+| Open | `Enter` |
+| Refresh | `F5` |
+| New folder | `Ctrl+Shift+N` |
+| Undo | `Ctrl+Z` |
+| Settings | `Ctrl+,` |
+
+## Search details
+
+- All words in a query must match. Quote a phrase to keep spaces: `"annual report 2026"`.
+- `*.txt` and `report*` match the whole name; `rep?rt` matches any part.
+- A term containing `\` or `/` is matched against the full path.
+- The exact/partial mode applies both to the instant folder filter and to disk search.
+- The first search after a file operation rebuilds the affected index; later searches read the cache.
+
+## Performance
+
+Measurements on a 16-logical-core Windows 11 machine, release build. Results depend on the disk and antivirus.
+
+### Index build
+
+User profile, **888,216 entries**:
+
+| Threads | Run 1 | Run 2 | Run 3 |
+|---:|---:|---:|---:|
+| 4 | 1.739 s | 1.689 s | 1.765 s |
+| **8 (default)** | 1.045 s | 1.013 s | 0.957 s |
+| 12 | 0.924 s | 0.818 s | 0.814 s |
+| 16 | 0.956 s | 0.809 s | 1.057 s |
+
+16 threads do not help further — the build becomes disk/write bound.
+
+### Cached search
+
+Volume `C:\`, **2,250,276 entries**, six runs:
+
+| Run | Time | From cache |
+|---|---:|---|
+| 1 | 0.131 s | yes |
+| 2 | 0.124 s | yes |
+| 3 | 0.124 s | yes |
+| 4 | 0.132 s | yes |
+| 5 | 0.135 s | yes |
+| 6 | 0.123 s | yes |
+
+### Resources and disk
+
+| Item | Value |
+|---|---:|
+| `korobka_explorer.exe` | **5.09 MB** |
+| Idle RAM | **80.3 MB working / 84.4 MB private** |
+| Idle CPU | **0.00%** |
+| Idle threads | 26 |
+| `C:\` index | **90.16 MB** for 2.25M entries |
+| Trash | 0.25 MB |
+| `target/` after build | ~6.78 GB (build artifacts, not in the repo) |
+
+> **Why does CPU spike during search?** The index is invalidated after file operations, and the first search rebuilds it. Reading an existing cache is ~0.13 s and uses almost no CPU. Reduce **Settings → Search → Search threads** to lower the rebuild ceiling.
+
+## Architecture
+
+| File | Responsibility |
+|---|---|
+| `src/main.rs` | Application, UI, tabs, settings, trash, operations |
+| `src/search.rs` | Query engine, compact index, parallel walk, cache |
+| `src/fs_ops.rs` | Copy, move, trash, delete, conflicts |
+| `src/locks.rs` | Locking-process detection and Restart Manager |
+| `src/archive.rs` | ZIP browsing and extraction |
+| `src/drives.rs` | Drive enumeration and volume metadata |
+| `src/path_util.rs` | Long-path `\\?\` helpers and display paths |
+| `src/i18n.rs` | Russian/English UI strings |
+| `src/shell_clipboard.rs` | File clipboard exchange with Explorer via CF_HDROP |
+
+Stack: Rust 2021, eframe/egui 0.31, egui_extras, rayon, memchr, zip, serde, windows-sys.
+
+## Testing
 
 ```powershell
 cargo test
 cargo clippy --all-targets
 ```
 
-## Горячие клавиши
+- **23 tests pass, 2 are ignored** (a lock test that spawns a helper and a Windows shortcut test).
+- The suite was run three times in a row with the same result.
+- Clippy reports no warnings.
+- Covered: file/folder copy, move with replacement, trash, permanent delete, trash restore, index build/cache, legacy cache format, and search/copy/delete of paths longer than 260 characters.
 
-| Действие | Клавиши |
-|---|---|
-| Новая вкладка / закрыть вкладку | `Ctrl+T` / `Ctrl+W` |
-| Переключение вкладок | `Ctrl+Tab` / `Ctrl+Shift+Tab` |
-| Назад / вперёд | `Alt+←` / `Alt+→` |
-| Вверх | `Backspace` |
-| Адресная строка | `Ctrl+L` |
-| Поиск | `Ctrl+F` |
-| Выбрать всё видимое | `Ctrl+A` |
-| Копировать / вырезать / вставить | `Ctrl+C` / `Ctrl+X` / `Ctrl+V` |
-| Удалить в корзину | `Del` |
-| Удалить безвозвратно | `Shift+Del` |
-| Переименовать | `F2` |
-| Открыть | `Enter` |
-| Обновить | `F5` |
-| Новая папка | `Ctrl+Shift+N` |
-| Отменить операцию | `Ctrl+Z` |
-| Настройки | `Ctrl+,` |
+## Nuances and limitations
 
-## Производительность
+- **Windows only.** Linux/macOS are not supported; several modules are Windows-specific.
+- **Not the Windows Recycle Bin.** The trash is internal: `%LOCALAPPDATA%\Korobka\trash`. Restore from the app's Trash window; there is no Explorer integration.
+- **Long paths** work inside the app, but opening a file in a third-party program may still depend on that program.
+- **No installer and no code signing.** Build from source or use the unsigned release. SmartScreen may warn.
+- **No incremental index yet.** After copy/delete/rename the index is marked stale and the next search rebuilds it. This is the one-time CPU spike.
+- **No single-instance guard.** Running two instances may race on the session/index files.
+- **No preview/thumbnails yet.**
+- First build downloads crates and can take several minutes; `target/` grows to several GB during development.
+- Settings and indexes are written under `%LOCALAPPDATA%\Korobka`; the executable itself is portable.
 
-Замеры на 16 логических ядрах, release-сборка, Windows 11. Значения могут зависеть от диска и антивируса.
+## Roadmap
 
-### Построение индекса
+- Incremental index updates instead of full rebuilds.
+- `$MFT` / USN journal index for near-instant volume search.
+- Single-instance protection.
+- Windows Recycle Bin integration.
+- File preview and thumbnails.
+- GitHub Actions CI, installer and code signing.
 
-Профиль пользователя, **888 216 объектов**:
+## License
 
-| Потоков | Прогон 1 | Прогон 2 | Прогон 3 |
-|---:|---:|---:|---:|
-| 4 | 1,739 с | 1,689 с | 1,765 с |
-| **8 (по умолчанию)** | 1,045 с | 1,013 с | 0,957 с |
-| 12 | 0,924 с | 0,818 с | 0,814 с |
-| 16 | 0,956 с | 0,809 с | 1,057 с |
-
-16 потоков уже не дают выигрыша — упирается в диск и запись кэша.
-
-### Чтение готового кэша
-
-Том `C:\`, **2 250 276 объектов**, 6 прогонов:
-
-| Прогон | Время | Из кэша |
-|---|---:|---|
-| 1 | 0,131 с | да |
-| 2 | 0,124 с | да |
-| 3 | 0,124 с | да |
-| 4 | 0,132 с | да |
-| 5 | 0,135 с | да |
-| 6 | 0,123 с | да |
-
-### Ресурсы
-
-| Параметр | Значение |
-|---|---:|
-| `korobka_explorer.exe` | **5,09 МБ** |
-| RAM в простое | **80,3 МБ working / 84,4 МБ private** |
-| CPU в простое | **0,00%** |
-| Потоков в простое | 26 |
-| Индекс тома `C:\` | **90,16 МБ** на 2,25 млн объектов |
-| Корзина | 0,25 МБ |
-| `target` после сборки | ~6,78 ГБ (артефакты, не входит в репозиторий) |
-
-**Почему бывает высокая загрузка CPU?** Индекс помечается устаревшим после файловых операций, и первый следующий поиск перестраивает его. Это разовая нагрузка. При чтении готового кэша загрузка почти нулевая. Число потоков можно уменьшить в **Настройки → Поиск → Потоки поиска**.
-
-## Устройство проекта
-
-| Файл | Назначение |
-|---|---|
-| `src/main.rs` | Приложение, интерфейс, вкладки, настройки, корзина, операции |
-| `src/search.rs` | Движок поиска, индекс, компактный кэш, параллельный обход |
-| `src/fs_ops.rs` | Копирование, перемещение, корзина, удаление, конфликты |
-| `src/locks.rs` | Поиск блокирующих процессов, Restart Manager |
-| `src/archive.rs` | Просмотр и распаковка ZIP |
-| `src/drives.rs` | Список дисков и метаданные томов |
-| `src/path_util.rs` | Длинные пути `\\?\` и отображение |
-| `src/i18n.rs` | Русский/английский интерфейс |
-| `src/shell_clipboard.rs` | Обмен файлами с Проводником через CF_HDROP |
-
-Стек: Rust 2021, eframe/egui 0.31, egui_extras, rayon, memchr, zip, serde, windows-sys.
-
-## Тесты
-
-- **23 теста проходят, 2 игнорируются** (lock-тест с дочерним процессом и создание ярлыка).
-- Тесты запускались три раза подряд — стабильно.
-- `cargo clippy --all-targets` — без предупреждений.
-- Проверены: копирование файлов и папок, перемещение с заменой, корзина, безвозвратное удаление, восстановление из корзины, поиск/копирование/удаление путей длиннее 260 символов, компактный кэш и чтение старого формата.
-
-## Ограничения
-
-- Это **не** замена Проводнику и **не** интеграция с корзиной Windows: корзина своя, в `%LOCALAPPDATA%\Korobka\trash`. Восстановление — через окно корзины; отдельного окна Проводника нет.
-- Длинные пути поддерживаются внутри приложения; открытие файла сторонней программой может зависеть от неё.
-- Нет установщика и подписи кода — сборка из исходников.
-- После файловых операций индекс перестраивается; инкрементального обновления пока нет.
-- Нет preview/миниатюр и single-instance защиты.
-- Приложение ориентировано на Windows.
-
-## Планы
-
-- Инкрементальное обновление индекса вместо полной перестройки.
-- Индекс по `$MFT`/USN journal для мгновенного поиска.
-- Единый экземпляр приложения.
-- Интеграция с корзиной Windows.
-- Preview и миниатюры.
-- CI (GitHub Actions), установщик и подпись.
-
-## Лицензия
-
-MIT. См. [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE).
