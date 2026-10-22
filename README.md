@@ -84,6 +84,8 @@ cargo run --release
 target\release\korobka_explorer.exe
 ```
 
+Готовую сборку также можно скачать в [Releases](https://github.com/ivangameapps-lab/korobka-explorer-public/releases/latest). Файл не подписан, поэтому Windows SmartScreen может показать предупреждение.
+
 Можно открыть папку сразу:
 
 ```powershell
