@@ -815,6 +815,10 @@ impl KorobkaApp {
                 sort_fs_entries(&mut entries, self.sort, self.folders_first);
                 self.entries = entries;
                 self.filter_dirty = true;
+                // A cached directory is installed synchronously during a
+                // sidebar click, after the per-frame filter rebuild. Rebuild
+                // here so the table never sees indices from the previous disk.
+                self.rebuild_filter();
                 self.status = tr("Готово").to_owned();
                 return;
             }
@@ -881,6 +885,7 @@ impl KorobkaApp {
             Instant::now(),
             std::mem::take(&mut self.entries),
         ));
+        self.filter_indices.clear();
         while self.dir_cache.len() > 10 {
             self.dir_cache.remove(0);
         }
@@ -2766,10 +2771,11 @@ impl KorobkaApp {
                     return;
                 }
                 self.entries = result.entries;
-                self.filter_dirty = true;
                 if self.sort != result.sort {
                     self.sort_entries();
                 }
+                self.filter_dirty = true;
+                self.rebuild_filter();
                 self.status = match result.error {
                     Some(error) => {
                         if i18n::english() {
@@ -4321,8 +4327,12 @@ impl KorobkaApp {
             .body(|body| {
                 body.rows(row_height, self.filter_indices.len(), |mut row| {
                     let row_index = row.index();
-                    let index = self.filter_indices[row_index];
-                    let entry = &self.entries[index];
+                    let Some(&index) = self.filter_indices.get(row_index) else {
+                        return;
+                    };
+                    let Some(entry) = self.entries.get(index) else {
+                        return;
+                    };
                     row.set_selected(self.selection.contains(&entry.path));
                     row.col(|ui| {
                         name_cell(ui, entry.is_dir, entry.color, &entry.name);
@@ -4503,7 +4513,9 @@ impl KorobkaApp {
                         let Some(&index) = visible.get(visible_index) else {
                             continue;
                         };
-                        let entry = &entries[index];
+                        let Some(entry) = entries.get(index) else {
+                            continue;
+                        };
                         let selected = selection.contains(&entry.path);
                         let response = paint_tile(ui, entry, selected, tile_width, tile_height);
                         if response.secondary_clicked() {
